@@ -26,38 +26,35 @@ Sector.Fuels <- function(sector) {
 
 
 # UI ----
-ui <- fluidPage(
-   
-   titlePanel("NZ greenhouse gas emissions 1990-2010"),
-   
-   sidebarLayout(
-      # Sidebar ----
-      sidebarPanel(
-        sliderInput("secyears", "Date range", 
-                    min=1990, max=2010, value=c(1990, 2010),
-                    sep="", step=1),
-        selectInput("secscale", "Scale", 
-                    choices=c("y", "sqrt(y)", "log10(y)"), selected="y"),
-        checkboxGroupInput("secSectors", "Sectors", 
-                           choices=sectors.a, selected = sectors.a),
-        checkboxInput("seclegend", "Show legend", value=TRUE),
-        checkboxInput("secminc", "Set minimum", value=FALSE),
-        conditionalPanel("input.secminc",
-                         numericInput("secmin", label=NULL, value=NA)),
-        checkboxInput("secmaxc", "Set maximum", value=FALSE),
-        conditionalPanel("input.secmaxc",
-                         numericInput("secmax", label=NULL, value=NA)),
-      width=3),
-      
-      # Main panel ----
-      mainPanel(
-        tabsetPanel(id="tabs",
-                   tabPanel("By Sector", 
-                            plotOutput("secPlot")
-                            )
+ui <- navbarPage("NZ Emissions", collapsible = TRUE,
+   # Sector tab ----
+   tabPanel("Sector",
+                h3("Emissions by sector"),
+                plotOutput("secPlot"),
+                fluidRow(
+                 column(5, offset=1,
+                        h4("Options"),
+                    sliderInput("secyears", "Date range", 
+                      min=1990, max=2010, value=c(1990, 2010),
+                      sep="", step=1),
+                    selectInput("secscale", "Scale", 
+                      choices=c("y", "sqrt(y)", "log10(y)"), selected="y"),
+                    checkboxInput("seclegend", "Show legend", value=TRUE),
+                    checkboxInput("secminc", "Set minimum", value=FALSE),
+                    conditionalPanel("input.secminc",
+                     numericInput("secmin", label=NULL, value=NA)),
+                    checkboxInput("secmaxc", "Set maximum", value=FALSE),
+                    conditionalPanel("input.secmaxc",
+                     numericInput("secmax", label=NULL, value=NA))
+                        ),
+                 column(5, offset=1,
+                      h4("Sectors"),
+                     checkboxGroupInput("secSectors", NULL, 
+                      choices=sectors.a, selected = sectors.a)
                     )
-      )
-   )
+                )             
+        ),
+     tabPanel("By fuel")
 )
 
 server <- function(input, output) {
