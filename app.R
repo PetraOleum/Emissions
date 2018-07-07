@@ -4,6 +4,10 @@ library(scales)
 library(tidyverse)
 library(readxl)
 
+# Original data from 
+# https://catalogue.data.govt.nz/dataset/
+# new-zealands-energy-outlook/resource/3caad31e-aa96-4c94-8f54-1000518a0690?inner_span=True
+
 Emissions.Sector <- read_excel("Emissions1990-2010.xlsx", 
                                         sheet = "Sector")
 Emissions.Fuel <- read_excel("Emissions1990-2010.xlsx", 
