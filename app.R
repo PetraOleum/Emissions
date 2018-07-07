@@ -13,6 +13,8 @@ Sector.Tot <- filter(Emissions.Sector, Source == "Total")
 sectors.a <- unique(Emissions.Sector$Sector)
 sectors <- unique(Emissions.Sector$Sector)[-1]
 
+fuels <- Emissions.Fuel$Fuel
+
 # gather(comf, key="Year", value="Co2eqv", as.character(1990:2010))
 
 Sector.Fuels <- function(sector) {
@@ -28,7 +30,7 @@ Sector.Fuels <- function(sector) {
 # UI ----
 ui <- navbarPage("NZ Emissions", collapsible = TRUE,
    # Sector tab ----
-   tabPanel("Sector",
+   tabPanel("By sector",
                 h3("Emissions by sector"),
                 plotOutput("secPlot"),
                 fluidRow(
@@ -54,7 +56,33 @@ ui <- navbarPage("NZ Emissions", collapsible = TRUE,
                     )
                 )             
         ),
-     tabPanel("By fuel")
+     # Fuel tab ----
+     tabPanel("By fuel",
+              h3("Emissions by fuel"),
+              plotOutput("fuPlot"),
+                fluidRow(
+                 column(5, offset=1,
+                        h4("Options"),
+                    sliderInput("fuyears", "Date range", 
+                      min=1990, max=2010, value=c(1990, 2010),
+                      sep="", step=1),
+                    selectInput("fuscale", "Scale", 
+                      choices=c("y", "sqrt(y)", "log10(y)"), selected="y"),
+                    checkboxInput("fulegend", "Show legend", value=TRUE),
+                    checkboxInput("fuminc", "Set minimum", value=FALSE),
+                    conditionalPanel("input.fuminc",
+                     numericInput("fumin", label=NULL, value=NA)),
+                    checkboxInput("fumaxc", "Set maximum", value=FALSE),
+                    conditionalPanel("input.fumaxc",
+                     numericInput("fumax", label=NULL, value=NA))
+                        ),
+                 column(5, offset=1,
+                      h4("Fuels"),
+                     checkboxGroupInput("fuFuels", NULL, 
+                      choices=fuels, selected = fuels)
+                    )
+                )             
+              )
 )
 
 server <- function(input, output) {
@@ -93,6 +121,43 @@ server <- function(input, output) {
       s.p + scale_y_continuous(breaks=pretty_breaks(n=5), limits=mmx) -> s.p
     }
     return(s.p)
+  })
+  
+  FuOverall <- reactive({
+    st <- gather(Emissions.Fuel, key="Year",
+                 value="Co2eqv", as.character(1990:2010)) %>% 
+      mutate(Year = as.integer(Year), 
+             Fuel = factor(Fuel, levels=unique(Fuel))) %>%
+    # Logic for filtering out years, fuels here
+      filter(Year %in% input$fuyears[1]:input$fuyears[2], 
+             Fuel %in% input$fuFuels) %>%
+      mutate(Year = as.Date(paste0(Year, "-01-01")))
+    return(st)
+  })
+  
+  output$fuPlot <- renderPlot({
+    fov <- FuOverall()
+    ggplot(fov, aes(x=Year, 
+                    y=Co2eqv, linetype=Fuel, color=Fuel)) -> f.p
+    f.p + geom_line(size=1.5, na.rm=TRUE) -> f.p
+    f.p + guides(linetype=guide_legend(keywidth = 5)) -> f.p
+    f.p + theme_linedraw() -> f.p
+    f.p + theme(legend.position = "right", 
+                legend.title = element_blank()) -> f.p
+    f.p + ylab("CO₂ equivalent (kt)") -> f.p
+    if (!input$fulegend) {
+      f.p + theme(legend.position="none") -> f.p
+    }
+    mmx <- c(ifelse(input$fuminc, input$fumin, NA),
+             ifelse(input$fumaxc, input$fumax, NA))
+    if (input$fuscale == "sqrt(y)") {
+      f.p + scale_y_sqrt(breaks=pretty_breaks(n=5), limits=mmx) -> f.p
+    } else if (input$fuscale == "log10(y)") {
+      f.p + scale_y_log10(breaks=pretty_breaks(n=5), limits=mmx) -> f.p
+    } else {
+      f.p + scale_y_continuous(breaks=pretty_breaks(n=5), limits=mmx) -> f.p
+    }
+    return(f.p)
   })
 }
 
