@@ -3,6 +3,7 @@ library(ggplot2)
 library(scales)
 library(tidyverse)
 library(readxl)
+library(shinycssloaders)
 
 # Original data from 
 # https://catalogue.data.govt.nz/dataset/
@@ -36,7 +37,7 @@ ui <- navbarPage("NZ Emissions", collapsible = TRUE,
    # Sector tab ----
    tabPanel("By sector",
                 h3("Emissions by sector"),
-                plotOutput("secPlot"),
+                plotOutput("secPlot") %>% withSpinner(type=5),
                 fluidRow(
                  column(5, offset=1,
                         h4("Options"),
@@ -63,7 +64,7 @@ ui <- navbarPage("NZ Emissions", collapsible = TRUE,
      # Fuel tab ----
      tabPanel("By fuel",
               h3("Emissions by fuel"),
-              plotOutput("fuPlot"),
+              plotOutput("fuPlot") %>% withSpinner(type=5),
                 fluidRow(
                  column(5, offset=1,
                         h4("Options"),
