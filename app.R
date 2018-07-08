@@ -91,6 +91,8 @@ ui <- navbarPage("NZ Emissions", collapsible = TRUE,
 )
 
 server <- function(input, output) {
+  
+  # Sector logic ----
   SecOverall <- reactive({
     st <- gather(Sector.Tot, key="Year",
                  value="Co2eqv", as.character(1990:2010)) %>% 
@@ -103,13 +105,23 @@ server <- function(input, output) {
     return(st)
   })
    
+  # Sector plot ----
   output$secPlot <- renderPlot({
     sov <- SecOverall()
-    ggplot(sov, aes(x=Year, 
-                    y=Co2eqv, linetype=Sector, color=Sector)) -> s.p
-    s.p + geom_line(size=1.5, na.rm=TRUE) -> s.p
+    if (input$secyears[1] != input$secyears[2]) {
+      ggplot(sov, aes(x=Year, 
+                      y=Co2eqv, linetype=Sector, color=Sector)) -> s.p
+      s.p + geom_line(size=1.5, na.rm=TRUE) -> s.p
+      s.p + theme_linedraw() -> s.p
+    } else {
+      ggplot(sov, aes(x=Sector, 
+                      y=Co2eqv, fill=Sector)) -> s.p
+      s.p + geom_col(na.rm=TRUE) -> s.p
+      s.p + theme_linedraw() -> s.p
+      s.p + theme(axis.text.x = element_text(
+        angle = -30, hjust = 0, vjust = 0)) -> s.p
+    }
     s.p + guides(linetype=guide_legend(keywidth = 5)) -> s.p
-    s.p + theme_linedraw() -> s.p
     s.p + theme(legend.position = "right", 
                 legend.title = element_blank()) -> s.p
     s.p + ylab("CO₂ equivalent (kt)") -> s.p
@@ -128,6 +140,7 @@ server <- function(input, output) {
     return(s.p)
   })
   
+  # Fuel logic ----
   FuOverall <- reactive({
     st <- gather(Emissions.Fuel, key="Year",
                  value="Co2eqv", as.character(1990:2010)) %>% 
@@ -140,13 +153,23 @@ server <- function(input, output) {
     return(st)
   })
   
+  # Fuel plot ----
   output$fuPlot <- renderPlot({
     fov <- FuOverall()
-    ggplot(fov, aes(x=Year, 
-                    y=Co2eqv, linetype=Fuel, color=Fuel)) -> f.p
-    f.p + geom_line(size=1.5, na.rm=TRUE) -> f.p
+    if (input$fuyears[1] != input$fuyears[2]) {
+      ggplot(fov, aes(x=Year, 
+                      y=Co2eqv, linetype=Fuel, color=Fuel)) -> f.p
+      f.p + geom_line(size=1.5, na.rm=TRUE) -> f.p
+      f.p + theme_linedraw() -> f.p
+    } else {
+      ggplot(fov, aes(x=Fuel, 
+                      y=Co2eqv, fill=Fuel)) -> f.p
+      f.p + geom_col(na.rm=TRUE) -> f.p
+      f.p + theme_linedraw() -> f.p
+      f.p + theme(axis.text.x = element_text(
+        angle = -30, hjust = 0, vjust = 0)) -> f.p
+    }
     f.p + guides(linetype=guide_legend(keywidth = 5)) -> f.p
-    f.p + theme_linedraw() -> f.p
     f.p + theme(legend.position = "right", 
                 legend.title = element_blank()) -> f.p
     f.p + ylab("CO₂ equivalent (kt)") -> f.p
