@@ -15,6 +15,10 @@ Emissions.Sector <- read_excel("Emissions1990-2010.xlsx",
                                         sheet = "Sector")
 Emissions.Fuel <- read_excel("Emissions1990-2010.xlsx", 
                              sheet = "Fuel")
+
+sectors.a <- unique(Emissions.Sector$Sector)
+sectors <- unique(Emissions.Sector$Sector)[-1]
+
 sector.col <- data.frame(Sector=sectors.a, 
                          col=brewer.pal(length(sectors.a), "Set3"))
 Emissions.Sector <- left_join(Emissions.Sector, sector.col) %>% 
@@ -24,8 +28,6 @@ Emissions.Fuel <- cbind(Emissions.Fuel,
                         col=brewer.pal(nrow(Emissions.Fuel), "Set2")) %>%
   mutate(col=as.character(col))
 
-sectors.a <- unique(Emissions.Sector$Sector)
-sectors <- unique(Emissions.Sector$Sector)[-1]
 
 fuels <- Emissions.Fuel$Fuel
 
