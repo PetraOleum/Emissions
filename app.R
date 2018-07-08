@@ -4,16 +4,25 @@ library(scales)
 library(tidyverse)
 library(readxl)
 library(shinycssloaders)
+library(RColorBrewer)
 
 # Original data from 
 # https://catalogue.data.govt.nz/dataset/
 # new-zealands-energy-outlook/resource/3caad31e-aa96-4c94-8f54-1000518a0690?inner_span=True
 
+# Data loading ----
 Emissions.Sector <- read_excel("Emissions1990-2010.xlsx", 
                                         sheet = "Sector")
 Emissions.Fuel <- read_excel("Emissions1990-2010.xlsx", 
                              sheet = "Fuel")
+sector.col <- data.frame(Sector=sectors.a, 
+                         col=brewer.pal(length(sectors.a), "Set3"))
+Emissions.Sector <- left_join(Emissions.Sector, sector.col) %>% 
+  mutate(col = as.character(col))
 Sector.Tot <- filter(Emissions.Sector, Source == "Total")
+Emissions.Fuel <- cbind(Emissions.Fuel, 
+                        col=brewer.pal(nrow(Emissions.Fuel), "Set2")) %>%
+  mutate(col=as.character(col))
 
 sectors.a <- unique(Emissions.Sector$Sector)
 sectors <- unique(Emissions.Sector$Sector)[-1]
@@ -110,9 +119,10 @@ server <- function(input, output) {
     sov <- SecOverall()
     if (input$secyears[1] != input$secyears[2]) {
       ggplot(sov, aes(x=Year, 
-                      y=Co2eqv, linetype=Sector, color=Sector)) -> s.p
+                      y=Co2eqv, color=Sector)) -> s.p
       s.p + geom_line(size=1.5, na.rm=TRUE) -> s.p
       s.p + theme_linedraw() -> s.p
+      s.p + scale_color_manual(values=unique(sov$col)) -> s.p
     } else {
       ggplot(sov, aes(x=Sector, 
                       y=Co2eqv, fill=Sector)) -> s.p
@@ -120,6 +130,7 @@ server <- function(input, output) {
       s.p + theme_linedraw() -> s.p
       s.p + theme(axis.text.x = element_text(
         angle = -30, hjust = 0, vjust = 0)) -> s.p
+      s.p + scale_fill_manual(values=unique(sov$col)) -> s.p
     }
     s.p + guides(linetype=guide_legend(keywidth = 5)) -> s.p
     s.p + theme(legend.position = "right", 
@@ -158,9 +169,10 @@ server <- function(input, output) {
     fov <- FuOverall()
     if (input$fuyears[1] != input$fuyears[2]) {
       ggplot(fov, aes(x=Year, 
-                      y=Co2eqv, linetype=Fuel, color=Fuel)) -> f.p
+                      y=Co2eqv, color=Fuel)) -> f.p
       f.p + geom_line(size=1.5, na.rm=TRUE) -> f.p
       f.p + theme_linedraw() -> f.p
+      f.p + scale_color_manual(values=unique(fov$col)) -> f.p
     } else {
       ggplot(fov, aes(x=Fuel, 
                       y=Co2eqv, fill=Fuel)) -> f.p
@@ -168,6 +180,7 @@ server <- function(input, output) {
       f.p + theme_linedraw() -> f.p
       f.p + theme(axis.text.x = element_text(
         angle = -30, hjust = 0, vjust = 0)) -> f.p
+      f.p + scale_fill_manual(values=unique(fov$col)) -> f.p
     }
     f.p + guides(linetype=guide_legend(keywidth = 5)) -> f.p
     f.p + theme(legend.position = "right", 
