@@ -46,15 +46,15 @@ Sector.Fuels <- function(sector) {
 # UI ----
 ui <- navbarPage("NZ Emissions", collapsible = TRUE,
    # Sector tab ----
-   tabPanel("By sector",
-                h3("Emissions by sector"),
+   tabPanel("Between sectors",
+                h3("Emissions between sectors"),
                 plotOutput("secPlot") %>% withSpinner(type=5),
                 fluidRow(
                  column(5, offset=1,
                         h4("Options"),
                     sliderInput("secyears", "Date range", 
                       min=1990, max=2010, value=c(1990, 2010),
-                      sep="", step=1),
+                      sep="", step=1, width="100%"),
                     selectInput("secscale", "Scale", 
                       choices=c("y", "sqrt(y)", "log10(y)"), selected="y"),
                     checkboxInput("seclegend", "Show legend", value=TRUE),
@@ -72,16 +72,42 @@ ui <- navbarPage("NZ Emissions", collapsible = TRUE,
                     )
                 )             
         ),
+   # Within tab ----
+   tabPanel("Within sectors",
+            h3("Emissions within sectors"),
+            plotOutput("wiPlot") %>% withSpinner(type=5),
+            fluidRow(
+              column(5, offset=1,
+                     h4("Options"),
+                    sliderInput("wiyears", "Date range", 
+                      min=1990, max=2010, value=c(1990, 2010),
+                      sep="", step=1, width="100%"),
+                    selectInput("wiscale", "Scale", 
+                      choices=c("y", "sqrt(y)", "log10(y)"), selected="y"),
+                    checkboxInput("wilegend", "Show legend", value=TRUE),
+                    checkboxInput("wiminc", "Set minimum", value=FALSE),
+                    conditionalPanel("input.wiminc",
+                     numericInput("wimin", label=NULL, value=NA)),
+                    checkboxInput("wimaxc", "Set maximum", value=FALSE),
+                    conditionalPanel("input.wimaxc",
+                     numericInput("wimax", label=NULL, value=NA))
+                   ),
+              column(5, offset=1,
+                     h4("Sector"),
+                     selectInput("picksec", label=NULL, selected=sectors.a[3], choices=sectors.a)
+                     
+                   )
+            )),
      # Fuel tab ----
-     tabPanel("By fuel",
-              h3("Emissions by fuel"),
+     tabPanel("Between fuels",
+              h3("Emissions between fuels"),
               plotOutput("fuPlot") %>% withSpinner(type=5),
                 fluidRow(
                  column(5, offset=1,
                         h4("Options"),
                     sliderInput("fuyears", "Date range", 
                       min=1990, max=2010, value=c(1990, 2010),
-                      sep="", step=1),
+                      sep="", step=1, width="100%"),
                     selectInput("fuscale", "Scale", 
                       choices=c("y", "sqrt(y)", "log10(y)"), selected="y"),
                     checkboxInput("fulegend", "Show legend", value=TRUE),
@@ -201,6 +227,55 @@ server <- function(input, output) {
       f.p + scale_y_continuous(breaks=pretty_breaks(n=5), limits=mmx) -> f.p
     }
     return(f.p)
+  })
+  
+  # Within logic ----
+  WiSec <- reactive({
+    st <- gather(Sector.Fuels(input$picksec), key="Year",
+                 value="Co2eqv", as.character(1990:2010)) %>% 
+      mutate(Year = as.integer(Year), 
+             Source = factor(Source, levels=unique(Source))) %>%
+    # Logic for filtering out years, fuels here
+      filter(Year %in% input$wiyears[1]:input$wiyears[2]) %>%
+      mutate(Year = as.Date(paste0(Year, "-01-01")))
+    return(st)
+  })
+  
+  # Within plot ----
+  output$wiPlot <- renderPlot({
+    wov <- WiSec()
+    if (input$wiyears[1] != input$wiyears[2]) {
+      ggplot(wov, aes(x=Year, 
+                      y=Co2eqv, color=Source)) -> w.p
+      w.p + geom_line(size=1.5, na.rm=TRUE) -> w.p
+      w.p + theme_linedraw() -> w.p
+      w.p + scale_color_brewer(type="qual") -> w.p
+    } else {
+      ggplot(wov, aes(x=Source, 
+                      y=Co2eqv, fill=Source)) -> w.p
+      w.p + geom_col(na.rm=TRUE) -> w.p
+      w.p + theme_linedraw() -> w.p
+      w.p + theme(axis.text.x = element_text(
+        angle = -30, hjust = 0, vjust = 0)) -> w.p
+      w.p + scale_fill_brewer(type="qual") -> w.p
+    }
+    w.p + guides(linetype=guide_legend(keywidth = 5)) -> w.p
+    w.p + theme(legend.position = "right", 
+                legend.title = element_blank()) -> w.p
+    w.p + ylab("CO₂ equivalent (kt)") -> w.p
+    if (!input$wilegend) {
+      w.p + theme(legend.position="none") -> w.p
+    }
+    mmx <- c(ifelse(input$wiminc, input$wimin, NA),
+             ifelse(input$wimaxc, input$wimax, NA))
+    if (input$wiscale == "sqrt(y)") {
+      w.p + scale_y_sqrt(breaks=pretty_breaks(n=5), limits=mmx) -> w.p
+    } else if (input$wiscale == "log10(y)") {
+      w.p + scale_y_log10(breaks=pretty_breaks(n=5), limits=mmx) -> w.p
+    } else {
+      w.p + scale_y_continuous(breaks=pretty_breaks(n=5), limits=mmx) -> w.p
+    }
+    return(w.p)
   })
 }
 
